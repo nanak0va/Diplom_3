@@ -1,0 +1,21 @@
+<configuration>
+    <!-- Вывод в консоль -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Уровень логов для всего проекта (Root) -->
+    <root level="ERROR">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+    <!-- Уровень логов только для ваших тестов -->
+    <logger name="ru.yandex" level="ERROR" />
+
+    <!-- Отключение лишних логов от Selenium и WebDriverManager -->
+    <logger name="org.openqa.selenium" level="ERROR" />
+    <logger name="io.github.bonigarcia" level="ERROR" />
+    <logger name="io.qameta.allure" level="ERROR" />
+</configuration>

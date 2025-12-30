@@ -1,0 +1,95 @@
+package ru.yandex.api.services;
+
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_OK;
+import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.not;
+import static ru.yandex.api.Endpoints.*;
+import static ru.yandex.api.ResponseSpec.success200;
+
+import io.qameta.allure.Step;
+import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
+import ru.yandex.api.dto.requests.CreateUserRequestData;
+import ru.yandex.api.dto.requests.LoginUserRequestData;
+import ru.yandex.api.dto.requests.LogoutRequestData;
+import ru.yandex.api.dto.responses.CreateUserResponseData;
+import ru.yandex.api.dto.responses.LoginUserResponseData;
+import ru.yandex.model.AccessTokens;
+import ru.yandex.model.User;
+
+public class LoginService extends AbstractService {
+
+    public LoginService() {
+        super(SB_API_URL + BASE_URL, "application/json");
+    }
+
+    @Step("Отправляем запрос на создание пользователя")
+    public ValidatableResponse register(CreateUserRequestData request) {
+        return post(REGISTER_USER, request).then();
+    }
+
+    @Step("Отправляем запрос на аутентификацию пользователя")
+    public ValidatableResponse signIn(LoginUserRequestData request) {
+        return post(LOGIN_USER, request).then();
+    }
+
+    @Step(
+            "Получаем access token по логину и паролю пользователя для дальнейшего использования в запросах (аутентификация)")
+    public AccessTokens signInAndGetAccessTokens(User user) {
+        LoginUserResponseData loginUserResponse = signIn(new LoginUserRequestData(user.getEmail(), user.getPassword()))
+                .spec(success200())
+                .body("accessToken", not(emptyString()))
+                .extract()
+                .as(LoginUserResponseData.class);
+
+        return new AccessTokens(loginUserResponse.getAccessToken(), loginUserResponse.getRefreshToken());
+    }
+
+    @Step(
+            "Получаем access token по логину и паролю пользователя для дальнейшего использования в запросах (аутентификация)")
+    public AccessTokens signInAndGetAccessTokensWithoutValidation(User user) {
+        ValidatableResponse response = signIn(new LoginUserRequestData(user.getEmail(), user.getPassword()));
+
+        LoginUserResponseData loginUserResponse = response.extract().as(LoginUserResponseData.class);
+
+        if (loginUserResponse.getAccessToken() == null
+                || loginUserResponse.getAccessToken().isEmpty()) {
+            return null;
+        }
+
+        return new AccessTokens(loginUserResponse.getAccessToken(), loginUserResponse.getRefreshToken());
+    }
+
+    @Step("Создаем дефолтного пользователя для тестов, если он еще не создан")
+    public User createDefaultUser(User defaultUser) {
+
+        Response response = register(new CreateUserRequestData(
+                        defaultUser.getEmail(), defaultUser.getName(), defaultUser.getPassword()))
+                .extract()
+                .response();
+
+        if (response.getStatusCode() != SC_OK && !isUserAlreadyExists(response)) {
+            throw new RuntimeException(
+                    "Не удалось зарегистрировать дефолтного пользователя для тестов. Остановка тестов");
+        }
+
+        return defaultUser;
+    }
+
+    private boolean isUserAlreadyExists(Response response) {
+        if (response.getStatusCode() != SC_FORBIDDEN) {
+            return false;
+        }
+
+        CreateUserResponseData errorResponse = response.getBody().as(CreateUserResponseData.class);
+        return errorResponse != null && "User already exists".equals(errorResponse.getMessage());
+    }
+
+    @Step("Отправляем запрос на удаление пользователя")
+    public ValidatableResponse logoutUser(AccessTokens accessTokens) {
+        LogoutRequestData request = new LogoutRequestData(accessTokens.getRefreshToken());
+
+        return post(LOGOUT_USER, request).then();
+    }
+}

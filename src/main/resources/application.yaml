@@ -1,0 +1,37 @@
+browser:
+  #название браузра, в котором будет выполняться тесты
+  #может быть переопределено параметром mvn test -DrunIn=
+  runIn: chrome
+
+  options:
+    common:
+      - --incognito
+      - --no-sandbox
+      - --disable-dev-shm-usage
+      - --start-maximized
+      - --remote-allow-origins=*
+      - --disable-extensions
+      - --log-level=3
+      - --disable-infobars
+      - --disable-translate
+
+    chrome:
+      - --disable-gpu
+    yandex:
+      - --disable-features=PasswordGeneration,PasswordManager
+      - --disable-features=Translate
+
+  chrome:
+    # если не указан, то будет использован автоматически найденный браузер и драйвер к нему
+    binary-path:
+
+  yandex:
+    #путь к исполняемому файлу браузера, обязательно для yandex
+    binary-path:
+    #путь к исполняемому файлу драйвера, обязательно для yandex
+    #Скачайте драйвер для Yandex Browser с официального сайта: https://github.com/yandex/YandexDriver/releases
+    driver-path:
+
+wait:
+  # Значение по умолчанию для ожиданий (в секундах)
+  default: 10
