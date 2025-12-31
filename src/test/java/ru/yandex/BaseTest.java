@@ -1,26 +1,36 @@
 package ru.yandex;
 
+import io.restassured.RestAssured;
+import io.restassured.filter.log.RequestLoggingFilter;
+import io.restassured.filter.log.ResponseLoggingFilter;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.openqa.selenium.WebDriver;
 import ru.yandex.api.services.LoginService;
 import ru.yandex.configs.ConfigReader;
 import ru.yandex.configs.DriverHelper;
+import ru.yandex.model.AccessTokens;
 import ru.yandex.model.User;
 import ru.yandex.services.AuthStorageService;
 import ru.yandex.services.JsExecutorService;
 import ru.yandex.services.WaitService;
+import ru.yandex.utils.DataPreparationHelper;
 
 public abstract class BaseTest {
-    public static final String DEFAULT_USER_EMAIL = "burger-edu-default-test-user-34@stellar-burgers.com";
-    public static final String DEFAULT_USER_NAME = "test";
-    public static final String DEFAULT_USER_PASSWORD = "123456";
     public final String uriResourceUnderTest = "https://stellarburgers.education-services.ru/";
     public WebDriver driver;
     public User defaultUser;
     protected WaitService waits;
     protected JsExecutorService jsExecutor;
     protected AuthStorageService authStorageService;
+    protected LoginService loginService;
+    public AccessTokens accessTokensDefaultUser;
+
+    @BeforeClass
+    public static void setUp() {
+        RestAssured.filters(new RequestLoggingFilter(), new ResponseLoggingFilter());
+    }
 
     @Before
     public void initTest() {
@@ -28,11 +38,13 @@ public abstract class BaseTest {
         this.waits = new WaitService(driver, ConfigReader.asInt("/wait/default"));
         this.jsExecutor = new JsExecutorService(driver);
         this.authStorageService = new AuthStorageService(waits);
+        this.loginService = new LoginService();
         openResource();
     }
 
     @After
     public void tearDown() {
+        loginService.deleteUserAfterTest(defaultUser, accessTokensDefaultUser);
         if (driver != null) {
             driver.quit();
         }
@@ -43,7 +55,7 @@ public abstract class BaseTest {
     }
 
     public void createDefaultUser() {
-        defaultUser = new LoginService()
-                .createDefaultUser(new User(DEFAULT_USER_EMAIL, DEFAULT_USER_NAME, DEFAULT_USER_PASSWORD));
+        defaultUser = DataPreparationHelper.generateUniqueUser();
+        accessTokensDefaultUser = loginService.createUserBeforeTest(defaultUser);
     }
 }

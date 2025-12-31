@@ -6,25 +6,17 @@ import io.qameta.allure.Description;
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import ru.yandex.api.services.LoginService;
 import ru.yandex.model.AccessTokens;
 import ru.yandex.model.User;
 import ru.yandex.pages.LoginPage;
 import ru.yandex.pages.RegistrationPage;
+import ru.yandex.utils.DataPreparationHelper;
 
 public class RegistrationTest extends BaseTest {
 
-    private AccessTokens accessTokens;
-    private LoginService loginService;
-
-    @Override
-    @Before
-    public void initTest() {
-        super.initTest();
-        this.loginService = new LoginService();
-    }
+    private AccessTokens accessTokensRegisteredUser;
+    public User registeredUser;
 
     @Test
     @DisplayName("Регистрация пользователя корректными данными")
@@ -32,16 +24,12 @@ public class RegistrationTest extends BaseTest {
             "Проверяет успешную регистрацию пользователя с валидными данными. После регистрации ожидается переход на страницу входа и возможность авторизации (получение токена).")
     public void shouldRegisterUser() {
 
-        var user = User.builder()
-                .email(String.format("user-%s@stellar-burgers.com", System.currentTimeMillis()))
-                .password("P123456")
-                .name("Duck")
-                .build();
+        registeredUser = DataPreparationHelper.generateUniqueUser();
 
         new RegistrationPage(waits, jsExecutor)
                 .openRegistrationPage()
                 .waitForLoadRegistrationPage()
-                .fillRegistrationForm(user.getName(), user.getEmail(), user.getPassword())
+                .fillRegistrationForm(registeredUser.getName(), registeredUser.getEmail(), registeredUser.getPassword())
                 .clickOnRegisterButton()
                 .waitForRegistrationSuccess();
 
@@ -49,10 +37,11 @@ public class RegistrationTest extends BaseTest {
                 "Не отобразилась форма входа",
                 new LoginPage(waits, jsExecutor).waitToLoadLoginPage().isLoginFormDisplayed());
 
-        accessTokens = loginService.signInAndGetAccessTokens(user);
+        accessTokensRegisteredUser = loginService.signInAndGetAccessTokens(registeredUser);
 
         assertNotNull(
-                "Не удалось получить токен авторизации пользователя после регистрации", accessTokens.getAccessToken());
+                "Не удалось получить токен авторизации пользователя после регистрации",
+                accessTokensRegisteredUser.getAccessToken());
     }
 
     @Test
@@ -63,36 +52,34 @@ public class RegistrationTest extends BaseTest {
 
         createDefaultUser();
 
-        var user = User.builder()
-                .email(DEFAULT_USER_EMAIL)
-                .password("SUPPER_SECRET_PASSWORD123")
-                .name("Duck")
+        registeredUser = User.builder()
+                .email(defaultUser.getEmail())
+                .password(DataPreparationHelper.generatePassword())
+                .name(DataPreparationHelper.generateName())
                 .build();
 
         var registrationPage = new RegistrationPage(waits, jsExecutor)
                 .openRegistrationPage()
                 .waitForLoadRegistrationPage()
-                .fillRegistrationForm(user.getName(), user.getEmail(), user.getPassword())
+                .fillRegistrationForm(registeredUser.getName(), registeredUser.getEmail(), registeredUser.getPassword())
                 .clickOnRegisterButton();
 
         assertTrue(
                 "Не отображена ошибка о том что пользователь с таким email уже зарегистрирован",
                 registrationPage.isUserAlreadyExistsValidationErrorDisplayed());
 
-        accessTokens = loginService.signInAndGetAccessTokensWithoutValidation(user);
+        accessTokensRegisteredUser = loginService.signInAndGetAccessTokensWithoutValidation(registeredUser);
 
         assertTrue(
                 "Был получен токен авторизации пользователя после попытки регистрации с уже существующим email",
-                accessTokens == null || accessTokens.getAccessToken() == null);
+                accessTokensRegisteredUser == null || accessTokensRegisteredUser.getAccessToken() == null);
     }
 
     @Override
     @After
     @Step("Очищаем зарегистрированного пользователя, если создали")
     public void tearDown() {
-        if (accessTokens != null) {
-            loginService.logoutUser(accessTokens);
-        }
+        loginService.deleteUserAfterTest(registeredUser, accessTokensRegisteredUser);
         super.tearDown();
     }
 }
