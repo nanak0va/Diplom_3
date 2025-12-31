@@ -2,6 +2,7 @@ package ru.yandex;
 
 import static org.junit.Assert.assertNotEquals;
 
+import io.qameta.allure.Description;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,6 +33,8 @@ public class LoginFormValidationTest extends BaseTest {
     }
 
     @Test
+    @Description(
+            "Проверяет валидацию полей на форме входа. При некорректных данных отображается сообщение об ошибке в поле пароля.")
     public void loginFormShouldValidateFieldsAndShowErrorMessages() {
 
         LoginPage loginPage = new LoginPage(waits, jsExecutor)

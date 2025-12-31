@@ -3,6 +3,7 @@ package ru.yandex;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import io.qameta.allure.Description;
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import org.junit.Before;
@@ -38,6 +39,8 @@ public class ProfilePageTest extends BaseTest {
 
     @Test
     @DisplayName("Открытие личного кабинета: страница профиля отображается")
+    @Description(
+            "Проверяет, что при переходе в личный кабинет через ссылку «Личный кабинет» отображается форма профиля")
     @Step("Пользователь заходит в личный кабинет. Ожидание: отображается форма профиля")
     public void shouldOpenProfilePageWhenUserClicksOnPersonalAccount() {
         ProfilePage profilePage = new ProfilePage(waits, jsExecutor).waitToLoadProfilePage();
@@ -46,6 +49,8 @@ public class ProfilePageTest extends BaseTest {
 
     @Test
     @DisplayName("Переход на главную через логотип из личного кабинета")
+    @Description(
+            "Проверяет, что при клике по логотипу в личном кабинете пользователь переходит на главную страницу, где отображается секция с ингредиентами.")
     @Step("Клик по логотипу в личном кабинете. Ожидание: переход на главную страницу")
     public void shouldOpenMainPageWhenClickOnLogoFromProfile() {
         new ProfilePage(waits, jsExecutor).waitToLoadProfilePage();
@@ -56,6 +61,8 @@ public class ProfilePageTest extends BaseTest {
 
     @Test
     @DisplayName("Переход на главную через ссылку «Конструктор» из личного кабинета")
+    @Description(
+            "Проверяет, что при клике по ссылке «Конструктор» в личном кабинете пользователь переходит на главную страницу, где отображается сборка бургера.")
     @Step("Клик по ссылке «Конструктор» в личном кабинете. Ожидание: переход на главную страницу")
     public void clickOnConstructorLinkShouldOpenMainPage() {
         new ProfilePage(waits, jsExecutor).waitToLoadProfilePage();

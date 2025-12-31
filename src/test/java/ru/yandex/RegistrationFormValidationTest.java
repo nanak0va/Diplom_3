@@ -2,6 +2,7 @@ package ru.yandex;
 
 import static org.junit.Assert.assertNotEquals;
 
+import io.qameta.allure.Description;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,6 +36,8 @@ public class RegistrationFormValidationTest extends BaseTest {
     }
 
     @Test
+    @Description(
+            "Проверяет валидацию полей на форме регистрации. При вводе некорректного пароля (менее 6 символов) отображается сообщение об ошибке.")
     public void registrationFormShouldValidateFieldsAndShowErrorMessages() {
         RegistrationPage registrationPage = new RegistrationPage(waits, jsExecutor)
                 .openRegistrationPage()

@@ -9,4 +9,5 @@ public class Endpoints {
     public static final String REGISTER_USER = "/auth/register";
     public static final String LOGIN_USER = "/auth/login";
     public static final String LOGOUT_USER = "/auth/logout";
+    public static final String DELETE_USER = "/auth/user";
 }

@@ -25,19 +25,26 @@ public class LoginService extends AbstractService {
     }
 
     @Step("Отправляем запрос на создание пользователя")
-    public ValidatableResponse register(CreateUserRequestData request) {
-        return post(REGISTER_USER, request).then();
+    public ValidatableResponse register(User user) {
+        CreateUserRequestData request = new CreateUserRequestData(user.getEmail(), user.getName(), user.getPassword());
+        return postWithoutAuth(REGISTER_USER, request).then();
     }
 
     @Step("Отправляем запрос на аутентификацию пользователя")
-    public ValidatableResponse signIn(LoginUserRequestData request) {
-        return post(LOGIN_USER, request).then();
+    public ValidatableResponse signIn(User user) {
+        LoginUserRequestData request = new LoginUserRequestData(user.getEmail(), user.getPassword());
+        return postWithoutAuth(LOGIN_USER, request).then();
+    }
+
+    @Step("Удаляем пользователя")
+    public void deleteUser(AccessTokens accessTokens) {
+        delete(DELETE_USER, accessTokens).then();
     }
 
     @Step(
             "Получаем access token по логину и паролю пользователя для дальнейшего использования в запросах (аутентификация)")
     public AccessTokens signInAndGetAccessTokens(User user) {
-        LoginUserResponseData loginUserResponse = signIn(new LoginUserRequestData(user.getEmail(), user.getPassword()))
+        LoginUserResponseData loginUserResponse = signIn(user)
                 .spec(success200())
                 .body("accessToken", not(emptyString()))
                 .extract()
@@ -49,7 +56,7 @@ public class LoginService extends AbstractService {
     @Step(
             "Получаем access token по логину и паролю пользователя для дальнейшего использования в запросах (аутентификация)")
     public AccessTokens signInAndGetAccessTokensWithoutValidation(User user) {
-        ValidatableResponse response = signIn(new LoginUserRequestData(user.getEmail(), user.getPassword()));
+        ValidatableResponse response = signIn(user);
 
         LoginUserResponseData loginUserResponse = response.extract().as(LoginUserResponseData.class);
 
@@ -61,13 +68,41 @@ public class LoginService extends AbstractService {
         return new AccessTokens(loginUserResponse.getAccessToken(), loginUserResponse.getRefreshToken());
     }
 
+    @Step("Регистрируем пользователя перед тестом и получаем access token и refresh token")
+    public AccessTokens createUserBeforeTest(User user) {
+        CreateUserResponseData response = register(user)
+                .spec(success200())
+                .body("accessToken", not(emptyString()))
+                .body("refreshToken", not(emptyString()))
+                .extract()
+                .as(CreateUserResponseData.class);
+
+        return new AccessTokens(response.getAccessToken(), response.getRefreshToken());
+    }
+
+    @Step("Удаляем пользователя после теста по refresh token")
+    public void deleteUserAfterTest(User user, AccessTokens accessTokens) {
+        if (user != null) {
+            AccessTokens accessTokensFresh = signInAndGetAccessTokensWithoutValidation(user);
+            if (accessTokensFresh != null && accessTokensFresh.getRefreshToken() != null) {
+                deleteUser(accessTokensFresh);
+            } else if (accessTokens != null && accessTokens.getRefreshToken() != null) {
+                deleteUser(accessTokens);
+            }
+        }
+    }
+
+    @Step("Отправляем запрос на выход пользователя")
+    public ValidatableResponse logoutUser(AccessTokens accessTokens) {
+        LogoutRequestData request = new LogoutRequestData(accessTokens.getRefreshToken());
+
+        return postWithoutAuth(LOGOUT_USER, request).then();
+    }
+
     @Step("Создаем дефолтного пользователя для тестов, если он еще не создан")
     public User createDefaultUser(User defaultUser) {
 
-        Response response = register(new CreateUserRequestData(
-                        defaultUser.getEmail(), defaultUser.getName(), defaultUser.getPassword()))
-                .extract()
-                .response();
+        Response response = register(defaultUser).extract().response();
 
         if (response.getStatusCode() != SC_OK && !isUserAlreadyExists(response)) {
             throw new RuntimeException(
@@ -84,12 +119,5 @@ public class LoginService extends AbstractService {
 
         CreateUserResponseData errorResponse = response.getBody().as(CreateUserResponseData.class);
         return errorResponse != null && "User already exists".equals(errorResponse.getMessage());
-    }
-
-    @Step("Отправляем запрос на удаление пользователя")
-    public ValidatableResponse logoutUser(AccessTokens accessTokens) {
-        LogoutRequestData request = new LogoutRequestData(accessTokens.getRefreshToken());
-
-        return post(LOGOUT_USER, request).then();
     }
 }

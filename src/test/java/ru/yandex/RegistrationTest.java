@@ -2,6 +2,7 @@ package ru.yandex;
 
 import static org.junit.Assert.*;
 
+import io.qameta.allure.Description;
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import org.junit.After;
@@ -27,6 +28,8 @@ public class RegistrationTest extends BaseTest {
 
     @Test
     @DisplayName("Регистрация пользователя корректными данными")
+    @Description(
+            "Проверяет успешную регистрацию пользователя с валидными данными. После регистрации ожидается переход на страницу входа и возможность авторизации (получение токена).")
     public void shouldRegisterUser() {
 
         var user = User.builder()
@@ -54,6 +57,8 @@ public class RegistrationTest extends BaseTest {
 
     @Test
     @DisplayName("Регистрация пользователя с уже существующим email")
+    @Description(
+            "Проверяет поведение формы регистрации при попытке использовать email, уже зарегистрированный в системе. Ожидается отображение ошибки и отсутствие успешной регистрации (токен не должен быть получен).")
     public void shouldNotRegisterUserIfEmailAlreadyExists() {
 
         createDefaultUser();
